@@ -1,0 +1,16 @@
+{
+  "name": "yzu-course-crawler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@adobe/helix-fetch": "^2.4.2",
+    "jsdom": "^19.0.0",
+    "qs": "^6.10.3"
+  }
+}
