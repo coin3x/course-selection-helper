@@ -1,11 +1,10 @@
 <script lang="ts">
     import type { SerNo } from "../../types";
-    import {getCourse} from '../../data/getCourse'
-    import { courseDisplayStatuses } from "../../stores";
+    import { allCourses, courseDisplayStatuses } from "../../stores";
     export let self;
     export let serNo: SerNo;
     export let deleteItem;
-    const course = getCourse(serNo)
+    const course = $allCourses.find(c => c.friendlyId === serNo)
     const displayStatus = courseDisplayStatuses(serNo)
     $: backgroundColor =
         course

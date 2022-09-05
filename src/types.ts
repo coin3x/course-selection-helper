@@ -38,30 +38,44 @@ export type CourseDatas = {
     [key : string ] : CourseData
 }
 
-export interface _CourseData {
-    流水號: string;
-    授課對象: (string)[];
-    課號: string;
-    班次: string;
-    課程名稱: string;
-    簡介影片: string;
-    學分: string;
-    課程識別碼: string;
-    全半年: string;
-    必選修: string;
-    授課教師: string;
-    加選方式: string;
-    時間教室: string;
-    總人數: string;
-    選課限制條件: string;
-    備註: string;
-    課程網頁: string;
-    time: (TimeSection)[] | "N/A";
-    weeks: number[] | "ALL";
+export type Lesson = {
+    dayOfWeek: number,
+    ordinal: number,
+    span: number,
+    location: string | null,
 }
 
-  
+export type Department = {
+    name: string,
+    id: string,
+    courses: _CourseData[],
+}
 
+export type _CourseData = {
+    friendlyId: string;
+    id: string;
+    year: string;
+    semester: string;
+    klz: string;
+    name: string;
+    teacher: string;
+    selectionAttribute: string;
+    selectionNotes: string;
+    hostingDepartment: string;
+    forDegree: string;
+    taughtInEnglish: boolean;
+    lessons: Lesson[];
+}
+
+export enum KeywordFilterMode {
+    Include,
+    Exclude,
+}
+
+export type KeywordFilterConfig = {
+    keyword: string,
+    mode: KeywordFilterMode,
+}
 
 export const CCourseDisplayStatus = (    
     isHighlighting : boolean

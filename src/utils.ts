@@ -1,6 +1,8 @@
 import { array } from "fp-ts";
 import { pipe } from "fp-ts/lib/function";
 import { Writable, writable } from "svelte/store";
+import { afterUpdate, onDestroy } from 'svelte';
+import type { _CourseData } from "./types";
 
 export function writableFamily<K, V>(defaultValue: V) {
     let hashmap = new Map<K, Writable<V>>();
@@ -12,11 +14,12 @@ export function writableFamily<K, V>(defaultValue: V) {
 
 // from https://stackoverflow.com/questions/56488202/how-to-persist-svelte-store/61300826#61300826
 export function persistentWritable<T>(key : string, startValue : T){
-  const { subscribe, set } = writable(startValue);
+  const { subscribe, set, update } = writable(startValue);
   
   return {
     subscribe,
     set,
+    update,
     useLocalStorage: () => {
       const json = localStorage.getItem(key);
       if (json) {
@@ -53,3 +56,51 @@ export const getMaxArraySize =
             array.map( x => x.length ),
             array.reduce(0, Math.max)
         )
+
+
+export function useEffect(cb, deps) {
+  console.log(deps())
+  let cleanup;
+  
+  function apply() {
+    if (cleanup) cleanup();
+    cleanup = cb();
+  }
+  
+  if (deps) {
+    let values = [];
+    afterUpdate(() => {
+      const new_values = deps();
+      if (new_values.some((value, i) => value !== values[i])) {
+        apply();
+        values = new_values;
+      }
+    });
+  } else {
+    // no deps = always run
+    afterUpdate(apply);
+  }
+  
+  onDestroy(() => {
+    if (cleanup) cleanup();
+  });
+}
+
+export const checkConflict = (needle: _CourseData, selected: _CourseData[]) => {
+  for (const hayCourse of selected) {
+      if (hayCourse.friendlyId === needle.friendlyId) continue;
+      for (const needleLesson of needle.lessons) {
+          const needleRange = [needleLesson.ordinal, needleLesson.ordinal + needleLesson.span - 1];
+          for (let hayLesson of hayCourse.lessons) {
+              if (hayLesson.dayOfWeek !== needleLesson.dayOfWeek) continue;
+              const hayRange = [hayLesson.ordinal, hayLesson.ordinal + hayLesson.span - 1];
+              // overlap: x1 <= y2 && y1 <= x2
+              // From stackoverflow.com/a/3269471
+              if (needleRange[0] <= hayRange[1] && hayRange[0] <= needleRange[1]) {
+                  return true;
+              }
+          }
+      }
+  }
+  return false;
+};

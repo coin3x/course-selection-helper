@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Footer from '../Footer.svelte';
+
 import GridCell from "./GridCell.svelte"
-import { candidateCourses, selectedCourses } from "../../stores";
+import { allCourses, selectedCourseIds } from "../../stores";
 import type { SerNo } from "../../types";
-import { getCourse } from "../../data/getCourse";
 import { array } from 'fp-ts'
 import { pipe } from 'fp-ts/lib/function'
 import { cellWidth } from "../../consts";
@@ -14,21 +15,21 @@ const 節次to時間 = {
     "0" :	"07:10 - 08:00",
     "1" :	"08:10 - 09:00",
     "2" :	"09:10 - 10:00",
-    "3" :	"10:20 - 11:10",
-    "4" :	"11:20 - 12:10",
-    "5" :	"12:20 - 13:10",
-    "6" :	"13:20 - 14:10",
-    "7" :	"14:20 - 15:10",
-    "8" :	"15:30 - 16:20",
-    "9" :	"16:30 - 17:20",
-    "10":	"17:30 - 18:20",
-    "A" :	"18:25 - 19:15",
-    "B" :	"19:20 - 20:10",
-    "C" :	"20:15 - 21:05",
-    "D" :	"21:10 - 22:00"
+    "3" :	"10:10 - 11:00",
+    "4" :	"11:10 - 12:00",
+    "5" :	"12:10 - 13:00",
+    "6" :	"13:10 - 14:00",
+    "7" :	"14:10 - 15:00",
+    "8" :	"15:10 - 16:00",
+    "9" :	"16:10 - 17:00",
+    "10":	"17:10 - 18:00",
+    "A" :	"18:30 - 19:20",
+    "B" :	"19:30 - 20:20",
+    "C" :	"20:30 - 21:20",
+    "D" :	"21:30 - 22:20?"
 }
 
-$: console.log("owo",$selectedCourses)
+$: console.log("owo",$selectedCourseIds)
 
 
 
@@ -38,24 +39,23 @@ $: sortedCourses = (()=>{
     : ([SerNo, number] | "PlaceHolder" )[][][]
     = [...Array(rows.length)].map( _ => [...Array(columns.length)].map( _ => [] ) ) 
     
-    for (const serNo of $selectedCourses) {                    
-        const course = getCourse(serNo)
+    for (const serNo of $selectedCourseIds) {                    
+        const course = $allCourses.find(c => c.friendlyId === serNo)
         if(!course) continue;
-        if(course.time == "N/A") continue;
-        for (const [sectionId, timeSection] of course.time.entries()){                                
+        for (const [lessonIdx, { dayOfWeek, ordinal, span }] of course.lessons.entries()) {
             const level =
             pipe(
-                Array.from( Array(timeSection.duration).keys()),
-                array.map( x => arr[timeSection.dayOfWeek][timeSection.startTime + x].length ), 
+                Array.from( Array(span).keys()),
+                array.map( x => arr[dayOfWeek - 1][ordinal + x].length ), 
                 array.reduce(0 ,Math.max)
             )
-                
-            arr[timeSection.dayOfWeek][timeSection.startTime][level] = [serNo, sectionId]
+
+            arr[dayOfWeek - 1][ordinal][level] = [serNo, lessonIdx]
     
-            for (let i = 0; i < timeSection.duration; i++) { 
+            for (let i = 0; i < span; i++) { 
                 for (let j = 0; j < level+1; j++) {
-                    if(!arr[timeSection.dayOfWeek][timeSection.startTime + i][j]){
-                        arr[timeSection.dayOfWeek][timeSection.startTime + i][j] = "PlaceHolder"
+                    if(!arr[dayOfWeek - 1][ordinal + i][j]){
+                        arr[dayOfWeek - 1][ordinal + i][j] = "PlaceHolder"
                     }
                 }
             }
@@ -69,7 +69,7 @@ $: sortedCourses = (()=>{
 
 $: _rows = rows.map( (x, i) => ({
     name: x, 
-    h: Math.max(200, getMaxArraySize(sortedCourses[i])*40+5)
+    h: Math.max(120, getMaxArraySize(sortedCourses[i])*40+5)
 }))
 
 </script>
@@ -127,37 +127,46 @@ $: _rows = rows.map( (x, i) => ({
         min-width: 2em; 
     }
 
+    .wrapper {
+        overflow-y: auto;
+    }
 
 </style>
 
-<table>    
-    <thead>
-        <tr>
-            <th>
-                
-            </th>
-            {#each columns as columnName}
-                <th>                                        
-                    {columnName}
-                    <br>
-                    <small>  {節次to時間[columnName]} </small>
+<div class="wrapper">
+    <table>    
+        <thead>
+            <tr>
+                <th>
+                    
                 </th>
-            {/each}
-        </tr>
-    </thead>
-    <tbody>
-    {#each _rows as {name, h}, i}
-        <tr style="width: {columns.length * cellWidth} em; height: {h}px">
-            <th style="height: {h}px">
-                {name}
-            </th>
-            {#each columns as _, j}
-                <td style="height: {h}px">                                    
-                    <GridCell v={sortedCourses[i][j]} height={h} />
-                </td>
-            {/each}
-        </tr>
-    {/each}
-    </tbody>
-    
-</table>
+                {#each columns as columnName, i}
+                    {#if i}
+                    <th>                                        
+                        {columnName}
+                        <br>
+                        <small>  {節次to時間[columnName]} </small>
+                    </th>
+                    {/if}
+                {/each}
+            </tr>
+        </thead>
+        <tbody>
+        {#each _rows as {name, h}, i}
+            <tr style="width: {columns.length * cellWidth} em; height: {h}px">
+                <th style="height: {h}px">
+                    {name}
+                </th>
+                {#each columns as _, j}
+                    {#if j}
+                    <td style="height: {h}px">                                    
+                        <GridCell v={sortedCourses[i][j]} height={h} />
+                    </td>
+                    {/if}
+                {/each}
+            </tr>
+        {/each}
+        </tbody>
+    </table>
+    <Footer />
+</div>

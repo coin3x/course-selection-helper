@@ -3,8 +3,7 @@ import { onMount } from "svelte";
 
 import { cellWidth } from "../../consts";
 
-import { getCourse } from "../../data/getCourse";
-import { courseDisplayStatuses, selectedCourseRefs } from "../../stores";
+import { allCourses, courseDisplayStatuses, currentViewingCourse, selectedCourseRefs } from "../../stores";
 
 import type { SerNo } from "../../types";
     
@@ -13,9 +12,8 @@ export let sectionId: number;
 export let nth      : number; 
 
 
-const course = getCourse(serNo) 
-if (course.time == "N/A") throw Error("time is N/A")
-const length = course.time[sectionId].duration
+const course = $allCourses.find(c => c.friendlyId === serNo)
+const length = course.lessons[sectionId].span
 
 const displayStatus = courseDisplayStatuses(serNo)
 // onMount( () => console.log("CourseBar", serNo) )
@@ -44,8 +42,11 @@ $: backgroundColor = $displayStatus.isHighlighting ? 'deeppink' : 'rgb(89, 151, 
     background-color: ${backgroundColor}`}
     on:mouseenter={()=> $displayStatus.isHighlighting = true}
     on:mouseleave={()=> $displayStatus.isHighlighting = false}
-    on:click={() => {
-        $selectedCourseRefs[serNo].scrollIntoView({behavior: 'smooth'})
+    on:click={(e) => {
+        if (e.altKey)
+            $selectedCourseRefs[serNo].scrollIntoView({behavior: 'smooth'})
+        else
+            $currentViewingCourse = serNo
     }}
 >
  {serNo + " " + course.name} 
