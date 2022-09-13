@@ -62,6 +62,7 @@
     .list-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr;
         flex: 1 1 auto;
         overflow-y: hidden;
     }
@@ -85,9 +86,19 @@
     }
     .top-actions {
         display: flex;
+        align-items: center;
+        padding: 8px;
     }
     .top-actions .btn {
         margin-left: 16px;
+    }
+    .list-label {
+        background-color: rgb(0 0 0 / 5%);
+        padding: 8px;
+        text-align: center;
+    }
+    .right-area {
+        overflow-y: auto;
     }
 </style>
 
@@ -126,6 +137,8 @@
             <button class="btn btn-outline-dark" on:click={() => displayCourseCatalog = true}>瀏覽課程</button>
         </div>
         <div class="list-container">
+            <div class="list-label">待選課程</div>
+            <div class="list-label">已選課程</div>
             {#if !displaySerNo}
                 <CourseList bind:courseList={$candidateCourseIds}/>
                 <CourseList bind:refs={$selectedCourseRefs} bind:courseList={$selectedCourseIds}/>
@@ -135,9 +148,10 @@
             {/if}            
         </div>    
     </div>
-    
-    <TimeTable></TimeTable>
-    
+    <div class="right-area">
+        
+        <TimeTable />
+    </div>
     {#if displayCourseCatalog}
         <CourseCatalog onClose={() => displayCourseCatalog = false} />
     {/if}

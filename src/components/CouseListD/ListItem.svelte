@@ -23,8 +23,10 @@
         /* background-color: #fff;  */
         border: 1px solid rgba(0,0,0,.125);
         /* font-size: smaller; */
-
         user-select: none;
+    }
+    button {
+        vertical-align: middle;
     }
 </style>
 
