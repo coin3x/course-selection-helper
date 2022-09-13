@@ -1,4 +1,5 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const path = require('path');
 const sveltePreprocess = require('svelte-preprocess');
 
@@ -17,9 +18,10 @@ module.exports = {
 		mainFields: ['svelte', 'browser', 'module', 'main']
 	},
 	output: {
-		path: path.join(__dirname, '/public'),
-		filename: '[name].js',
-		chunkFilename: '[name].[id].js'
+		path: path.join(__dirname, '/dist'),
+		filename: '[name].[contenthash].js',
+		chunkFilename: '[name].[id].[contenthash].js',
+		clean: true
 	},
 	module: {
 			rules: [
@@ -61,7 +63,11 @@ module.exports = {
 	mode,
 	plugins: [
 		new MiniCssExtractPlugin({
-			filename: '[name].css'
+			filename: '[name].[contenthash].css'
+		}),
+		new HtmlWebpackPlugin({
+			template: 'public/index.html',
+			filename: 'index.html',
 		})
 	],
 	devtool: prod ? false : 'source-map',
