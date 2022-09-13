@@ -20,6 +20,19 @@ function addNewKeywordFilter() {
     });
 }
 
+function getDegreeSelectorOptions(validDegree) {
+    return [
+        {
+            label: '全部',
+            value: 'all',
+        },
+        ...validDegree.map(d => ({
+            label: [, '一年級', '二年級', '三年級', '四年級'][d],
+            value: d
+        }))
+    ]
+}
+
 function filterCoursesWithDepartmentAndDegree(courses: _CourseData[], department: Department | null | undefined, degree: string) {
     let c = courses;
     if (department) c = department.courses;
@@ -112,6 +125,10 @@ $: theFinalList = truncated ? filteredCourses.slice(0, 200) : filteredCourses
 .catalog-course-filters .filter-row {
     padding: 4px 0;
 }
+
+.degree-item {
+    margin-left: 8px;
+}
 </style>
 
 <div class="dialog-wrapper" on:click={onClose}>
@@ -139,14 +156,17 @@ $: theFinalList = truncated ? filteredCourses.slice(0, 200) : filteredCourses
             </div>
             <div class="filter-row">
                 年級：
-                <select bind:value={selectedDegree} on:change={() => shouldTruncateLongList = true}>
-                    <option value="all">全部</option>
-                    {#each validDegree as d}
-                        <option value={d}>
-                            {d}
-                        </option>
-                    {/each}
-                </select>
+                {#each getDegreeSelectorOptions(validDegree) as d}
+                    <label class="degree-item">
+                        <input
+                            type="radio"
+                            name="filter-degree"
+                            checked={selectedDegree == d.value}
+                            on:change={() => (shouldTruncateLongList = true, selectedDegree = d.value)}
+                        />
+                        {d.label + ' '}
+                    </label>
+                {/each}
             </div>
             關鍵字篩選：<button class="btn btn-outline-dark" on:click={addNewKeywordFilter}>+</button>
             {#each keywordFilters as config, idx (idx)}
