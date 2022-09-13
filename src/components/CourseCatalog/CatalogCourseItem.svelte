@@ -12,7 +12,7 @@ const endsPastFive = course.lessons.some(l => (l.ordinal + l.span - 1) > 9);
 const takesPlaceOnWeekend = course.lessons.some(l => l.dayOfWeek > 5);
 const needsToRescheduleLunch = course.lessons.some(l => l.ordinal === 5 || (l.ordinal < 5 && (l.ordinal + l.span - 1) >= 5));
 
-const url = `https://portal.yzu.edu.tw/cosSelect/Cos_Plan.aspx?y=${course.year}&s=${course.semester}&id=${course.id}&c=${course.klz}`;
+const url = `https://portalfun.yzu.edu.tw/cosSelect/Cos_Plan.aspx?y=${course.year}&s=${course.semester}&id=${course.id}&c=${course.klz}`;
 
 let shouldShowDetails = false;
 

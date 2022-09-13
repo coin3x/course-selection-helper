@@ -3,7 +3,7 @@ const { fetch } = require('@adobe/helix-fetch');
 const qs = require('qs');
 const { writeFileSync, existsSync } = require('fs');
 
-const pageUrl = 'https://portal.yzu.edu.tw/cosSelect/index.aspx?D=G';
+const pageUrl = 'https://portalfun.yzu.edu.tw/cosSelect/index.aspx?D=G';
 const noCourseString = '無課程資料！';
 
 const Names = {
