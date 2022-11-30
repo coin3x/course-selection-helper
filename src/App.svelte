@@ -11,6 +11,11 @@
     import CourseCatalog from './components/CourseCatalog/CourseCatalog.svelte';
     import CourseDetails from './components/CourseCatalog/CourseDetails.svelte';
 
+    function formatSemester(sem: string) {
+        sem = sem.split('/').find(seg => seg.toLowerCase().includes('.json')) ?? sem;
+        sem = sem.split('.')[0];
+        return `${sem.slice(0, -1)}-${sem.slice(-1)}`;
+    }
     let displaySerNo = false;
     let displayCourseCatalog = false;
     let selectedSemester = null;
@@ -135,6 +140,7 @@
                 <label class="form-check-label" for="switchSerNo">編輯模式</label>
             </div>
             <button class="btn btn-outline-dark" on:click={() => displayCourseCatalog = true}>瀏覽課程</button>
+            <span style="margin-left: 1em">學年：{formatSemester($sem)}</span>
         </div>
         <div class="list-container">
             <div class="list-label">待選課程</div>
