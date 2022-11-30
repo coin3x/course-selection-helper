@@ -47,9 +47,9 @@ $: baselineCourses = filterCoursesWithDepartmentAndDegree($allCourses, _selected
 $: filteredCourses = baselineCourses.filter(c => {
     function match(mode: KeywordFilterMode, keyword: string, target: string) {
         if (mode === KeywordFilterMode.Include) {
-            return target.includes(keyword);
+            return target.toLowerCase().includes(keyword.toLowerCase());
         } else if (mode === KeywordFilterMode.Exclude) {
-            return !target.includes(keyword);
+            return !target.toLowerCase().includes(keyword.toLowerCase());
         }
         throw new Error('Unknown filter mode: ' + mode);
     }
