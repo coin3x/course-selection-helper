@@ -11,8 +11,6 @@ $: _v = v.map( (x, i) => ({x, i}) ).filter( y => y.x != "PlaceHolder") as {
     x: [string, number];
     i: number;
 }[]
-
-onMount( () => console.log("GridCell", v) )
 </script>
 
 

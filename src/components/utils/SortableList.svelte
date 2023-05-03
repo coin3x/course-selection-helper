@@ -38,7 +38,6 @@
     onMount(() => {
         // if(listElement && !sortable) {                            
         sortable = Sortable.create(listElement, sortableOptions);        
-        console.log("Sortable Created")    
     // }
     })
     onDestroy(()=> {

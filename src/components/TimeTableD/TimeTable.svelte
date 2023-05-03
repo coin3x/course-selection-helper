@@ -29,10 +29,6 @@ const 節次to時間 = {
     "D" :	"21:30 - 22:20?"
 }
 
-$: console.log("owo",$selectedCourseIds)
-
-
-
 $: sortedCourses = (()=>{
     let arr
     // SerNo, TimeSection index
@@ -62,7 +58,6 @@ $: sortedCourses = (()=>{
         }
         
     }    
-    console.log("sortedCourse updated", arr)
     return arr    
     
 })()
