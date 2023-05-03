@@ -1,9 +1,13 @@
 const { JSDOM } = require('jsdom');
 const { fetch } = require('@adobe/helix-fetch');
+const { PromisePool } = require('@supercharge/promise-pool')
 const qs = require('qs');
 const { writeFileSync, existsSync } = require('fs');
+const readline = require('readline');
 
 const pageUrl = 'https://portalfun.yzu.edu.tw/cosSelect/index.aspx?D=G';
+// 有必要嗎
+const CourseInfoAPIURL = Buffer.from('aHR0cHM6Ly9pc2RuYTEueXp1LmVkdS50dy9TdGRTZWxXZWJBUEkvYXBpL1NlbENvcy9HZXRfQ29zSW5mb19Db21fR2xvYmFsX0RU', 'base64');
 const noCourseString = '無課程資料！';
 
 const Names = {
@@ -20,6 +24,28 @@ const Values = {
 
 const defaultHeaders = {
 	'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.82 Safari/537.36',
+}
+
+async function getCourse({targetYearSem, course}) {
+	let res = await fetch(CourseInfoAPIURL, {
+		method: 'POST',
+		body: qs.stringify({
+			sYear: targetYearSem.trim().split(',')[0],
+			sSmtr: targetYearSem.trim().split(',')[1],
+			sCos_id: course.id,
+			sCos_class: course.klz,
+			sCosTerm_id: '1',
+			sLanguage: 'TW',
+		}),
+		follow: 0,
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+	}).then(res => res.json());
+	if (res.length !== 1) {
+		throw new Error('cannot get course info');
+	}
+	return res[0];
 }
 
 const htmlToDocument = (html) => {
@@ -177,67 +203,108 @@ async function main() {
 			headers: {
 				...defaultHeaders,
 			},
+			follow: 0,
 		}).then(r => r.text());
 		let doc = htmlToDocument(res);
 		initialFormData = getFormData(doc.querySelector('#form1'));
-		let ys = Array.from(doc.getElementById(Names.YearSem).querySelectorAll('option')).find(ys => ['1', '2'].includes(ys.value.trim().slice(-1)));
+		let yss = Array.from(doc.getElementById(Names.YearSem).querySelectorAll('option'))
+			.filter(ys => ['1', '2'].includes(ys.value.trim().slice(-1)));
+		let ys = (process.argv.length > 2)
+			? (yss.find(ys => process.argv[2].includes(ys.value.trim())) ?? yss[0])
+			: yss[0];
 		console.log(`Selected ${ys.textContent.trim()} (${ys.getAttribute('value')})`);
 		targetYearSem = ys.getAttribute('value');
 		for (let opt of doc.getElementById(Names.Dept).querySelectorAll('option')) {
 			departments.push({
 				name: opt.textContent.trimEnd(),
 				id: opt.getAttribute('value'),
+				courses: [],
 			});
 		}
 	}
 	let fileName = targetYearSem.trim().replace(/,/g, '') + '.json';
-	if (existsSync(fileName)) {
-		console.error(`File ${fileName} already exists.`);
+	if (existsSync(fileName) && !process.argv.some(arg => arg === '-f')) {
+		console.error(`File ${fileName} already exists. Use -f to overwrite.`);
 		process.exit(1);
 	}
-	for (let department of departments) {
-		console.log(`Fetching courses for ${department.name.trim()} (${department.id})`);
-		// do postback because we love webforms
-		let formData;
-		{
+	let {errors} = await PromisePool
+		.for(departments)
+		.withConcurrency(4)
+		.process(async (department) => {
+			console.log(`Fetching courses for ${department.name.trim()} (${department.id})`);
+			// do postback because we love webforms
+			let formData;
+			{
+				let res = await fetch(pageUrl, {
+					method: 'POST',
+					body: qs.stringify({
+						...initialFormData,
+						[Names.YearSem]: targetYearSem,
+						[Names.Dept]: department.id,
+						[Names.Degree]: '1', // The default value
+						[Names.EventTarget]: Names.Dept,
+					}),
+					headers: {
+						...defaultHeaders,
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+				}).then(r => r.text());
+				let doc = htmlToDocument(res);
+				formData = getFormData(doc);
+			}
 			let res = await fetch(pageUrl, {
 				method: 'POST',
 				body: qs.stringify({
-					...initialFormData,
+					...formData,
 					[Names.YearSem]: targetYearSem,
 					[Names.Dept]: department.id,
-					[Names.Degree]: '1', // The default value
-					[Names.EventTarget]: Names.Dept,
+					[Names.Degree]: '0', // All
+					[Names.SubmitButton]: Values.SubmitButton,
 				}),
 				headers: {
 					...defaultHeaders,
 					'Content-Type': 'application/x-www-form-urlencoded',
 				},
+				follow: 0,
 			}).then(r => r.text());
-			let doc = htmlToDocument(res);
-			formData = getFormData(doc);
-		}
-		let res = await fetch(pageUrl, {
-			method: 'POST',
-			body: qs.stringify({
-				...formData,
-				[Names.YearSem]: targetYearSem,
-				[Names.Dept]: department.id,
-				[Names.Degree]: '0', // All
-				[Names.SubmitButton]: Values.SubmitButton,
-			}),
-			headers: {
-				...defaultHeaders,
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
-		}).then(r => r.text());
 
-		if (res.includes(noCourseString)) {
-			department.courses = [];
-		} else {
-			department.courses = parseCourses(res);
-		}
-		console.log(`...found ${department.courses.length} courses.`);
+			if (!res.includes(noCourseString)) {
+				department.courses = parseCourses(res);
+			}
+			console.log(`  ...found ${department.courses.length} courses for department ID ${department.id}.`);
+		});
+	if (errors.length) {
+		console.error(errors);
+		throw new Error('Failed to fetch departments');
+	}
+	let allCourses = departments.flatMap(department => department.courses);
+	let creditDataFilled = false;
+	try {
+		await getCourse({ targetYearSem, course: allCourses[0] });
+		creditDataFilled = true;
+	} catch {}
+	if (creditDataFilled) {
+		console.log(`Fetching credit info and maximum enrollments for ${allCourses.length} courses.`);
+		await PromisePool
+			.for(allCourses)
+			.withConcurrency(4)
+			.onTaskFinished((course, pool) => {
+				readline.clearLine(process.stderr);
+				readline.cursorTo(process.stderr, 0);
+				process.stderr.write(`[${pool.processedItems().length}/${allCourses.length}] Fetched ${course.friendlyId}`);
+			})
+			.process(async (course) => {
+				let info = await getCourse({ targetYearSem, course });
+				if (info.credit) {
+					course.credit = Number(info.credit);
+				}
+				if (info.max_std) {
+					course.maximumEnrollments = Number(info.max_std);
+				}
+			})
+		console.error('');
+	} else {
+		console.log(`Skipping fetching credit info and maximum enrollments because the data haven't been filled.`)
 	}
 	writeFileSync(fileName, JSON.stringify(departments, null, 2));
 	console.log(`Saved to ${fileName}.`);
