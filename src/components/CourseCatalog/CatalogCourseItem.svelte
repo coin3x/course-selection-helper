@@ -131,6 +131,13 @@ function lessonToReadable(lesson: Lesson) {
         {course.hostingDepartment} · {numberInChinese[Number(course.forDegree) - 1]}年級<br/>
         {/if}
         {course.selectionAttribute} · {course.teacher}
+        
+        {#if typeof course.credit !== 'undefined'}
+        <br>學分數：{course.credit}
+        {/if}
+        {#if typeof course.maximumEnrollments !== 'undefined'}
+        <br>選課人數上限：{course.maximumEnrollments}
+        {/if}
     </div>
     <div class="course-name" on:click={() => shouldShowDetails = !shouldShowDetails}>
         {course.name}
