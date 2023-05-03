@@ -285,7 +285,7 @@ async function main() {
 	} catch {}
 	if (creditDataFilled) {
 		console.log(`Fetching credit info and maximum enrollments for ${allCourses.length} courses.`);
-		await PromisePool
+		let {errors} = await PromisePool
 			.for(allCourses)
 			.withConcurrency(4)
 			.onTaskFinished((course, pool) => {
@@ -302,7 +302,14 @@ async function main() {
 					course.maximumEnrollments = Number(info.max_std);
 				}
 			})
-		console.error('');
+		console.error('\n');
+		if (errors.length) {
+			for (let error of errors) {
+				console.error('Failed to fetch credit info for ' + error.item.friendlyId + ':');
+				console.error(error.message);
+				console.error('');
+			}
+		}
 	} else {
 		console.log(`Skipping fetching credit info and maximum enrollments because the data haven't been filled.`)
 	}
