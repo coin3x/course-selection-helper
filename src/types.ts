@@ -65,6 +65,8 @@ export type _CourseData = {
     forDegree: string;
     taughtInEnglish: boolean;
     lessons: Lesson[];
+    credit?: number;
+    maximumEnrollments?: number;
 }
 
 export enum KeywordFilterMode {
