@@ -33,6 +33,50 @@ export function persistentWritable<T>(key : string, startValue : T){
   };
 }
 
+export function versionedPersistentWritable<T>(
+  key: string,
+  startValue: T,
+){
+  const { subscribe, set, update } = writable(startValue);
+  const VersionKey = '_persistentWritableVersion';
+  return {
+    subscribe,
+    set,
+    update,
+    useVersionedLocalStorage: (
+      currentVersion: number,
+      upgrade: (previousVersion: number | null, previousData: any) => {
+        success: boolean,
+        newData?: any,
+      },
+    ) => {
+      const json = localStorage.getItem(key);
+      if (json) {
+        let parsed = JSON.parse(json);
+        let prevVer = parsed[VersionKey];
+        let prevData = parsed.data;
+        if (typeof prevVer !== 'number') {
+          prevVer = null;
+          prevData = parsed;
+        }
+        if (prevVer === null || currentVersion > prevVer) {
+          let {success, newData} = upgrade(prevVer, prevData);
+          if (success) {
+            localStorage.setItem(key, JSON.stringify({ [VersionKey]: currentVersion, data: newData }));
+            set(newData);
+          }
+        } else { // data version matched (or too new)
+          set(prevData);
+        }
+      }
+      
+      subscribe(current => {
+        localStorage.setItem(key, JSON.stringify({ [VersionKey]: currentVersion, data: current }));
+      });
+    }
+  };
+}
+
 //https://stackoverflow.com/questions/840781/get-all-non-unique-values-i-e-duplicate-more-than-one-occurrence-in-an-array/840808#840808
 export function findDuplicates<T>(arr: T[]) { 
     let sorted_arr = arr.slice().sort(); // You can define the comparing function here. 
