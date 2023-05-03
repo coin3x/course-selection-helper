@@ -3,7 +3,7 @@ import { onMount } from "svelte";
 
 import { cellWidth } from "../../consts";
 
-import { allCourses, courseDisplayStatuses, currentViewingCourse, selectedCourseRefs } from "../../stores";
+import { allCourses, currentViewingCourse, hoveringCourseId, selectedCourseRefs } from "../../stores";
 
 import type { SerNo } from "../../types";
     
@@ -15,9 +15,8 @@ export let nth      : number;
 const course = $allCourses.find(c => c.friendlyId === serNo)
 const length = course.lessons[sectionId].span
 
-const displayStatus = courseDisplayStatuses(serNo)
 // onMount( () => console.log("CourseBar", serNo) )
-$: backgroundColor = $displayStatus.isHighlighting ? 'deeppink' : 'rgb(89, 151, 26)'
+$: backgroundColor = $hoveringCourseId === serNo ? 'deeppink' : 'rgb(89, 151, 26)'
 
 </script>
 
@@ -40,8 +39,8 @@ $: backgroundColor = $displayStatus.isHighlighting ? 'deeppink' : 'rgb(89, 151, 
 
     width: ${(length * cellWidth -0.3)}em; 
     background-color: ${backgroundColor}`}
-    on:mouseenter={()=> $displayStatus.isHighlighting = true}
-    on:mouseleave={()=> $displayStatus.isHighlighting = false}
+    on:mouseenter={()=> $hoveringCourseId = serNo}
+    on:mouseleave={()=> $hoveringCourseId = null}
     on:click={(e) => {
         if (e.altKey)
             $selectedCourseRefs[serNo].scrollIntoView({behavior: 'smooth'})

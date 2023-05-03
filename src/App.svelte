@@ -1,13 +1,10 @@
 <script lang="ts">    
     import TimeTable from './components/TimeTableD/TimeTable.svelte'    
     import CourseList from './components/CouseListD/CourseList.svelte'
-    import {candidateCourseIds, selectedCourseIds, selectedCourseRefs, departments, rawSelectedDepartment, currentViewingCourse, selectedSemester as sem} from './stores'
+    import {candidateCourseIds, selectedCourseIds, selectedCourseRefs, departments, rawSelectedDepartment, currentViewingCourse, selectedSemester as sem, useVersionedLocalStorageForSemesterSegmentedWritables, oldRawSelectedDepartment, oldSelectedCourseIds, oldCandidateCourseIds, hasMigratedToVersionedData} from './stores'
     import { onMount } from "svelte";
     import { findDuplicates, useEffect } from './utils';
     import type { Department } from './types';
-    import { concat } from 'fp-ts/lib/ReadonlyNonEmptyArray';
-    import { map } from 'fp-ts/lib/Functor';
-    import { trim } from 'fp-ts/lib/string';
     import CourseCatalog from './components/CourseCatalog/CourseCatalog.svelte';
     import CourseDetails from './components/CourseCatalog/CourseDetails.svelte';
 
@@ -18,42 +15,51 @@
     }
     let displaySerNo = false;
     let displayCourseCatalog = false;
-    let selectedSemester = null;
-    $: console.log(displaySerNo)
 
     let editCandidateCourses = "";
     let editSelectedCourses = "";
     let fsMsg = '正在載入';
+    let semesters = [];
 
     onMount(async()=>{
-        candidateCourseIds.useLocalStorage()
-        selectedCourseIds.useLocalStorage()
-        rawSelectedDepartment.useLocalStorage()
+        oldCandidateCourseIds.useLocalStorage()
+        oldSelectedCourseIds.useLocalStorage()
+        oldRawSelectedDepartment.useLocalStorage()
+        hasMigratedToVersionedData.useLocalStorage();
 
-        let qs = new URLSearchParams(location.search);
-        let semesterFromQs = qs.get('semester');
-        let semesters = await fetch('semesters.json').then(r => r.json());
-        if (semesterFromQs) selectedSemester = semesters.find(s => s.includes(semesterFromQs));
-        if (!selectedSemester) selectedSemester = semesters[0];
-        $sem = selectedSemester;
+        useVersionedLocalStorageForSemesterSegmentedWritables();
+        semesters = await fetch('semesters.json').then(r => r.json());
+        $sem = semesters[0];
+        if (!$hasMigratedToVersionedData) {
+            $candidateCourseIds = $oldCandidateCourseIds;
+            $selectedCourseIds = $oldSelectedCourseIds;
+            $rawSelectedDepartment = $oldRawSelectedDepartment;
+            $hasMigratedToVersionedData = true;
+        }
     })
 
-    $: useEffect(() => {
-        if (!selectedSemester) return;
+    useEffect(() => {
+        if (!$sem) return;
         (async function() {
             try {
-                let _departments = (await fetch(selectedSemester).then(r => r.json())) as Department[];
+                departments.set([]);
+                let _departments = (await fetch($sem).then(r => r.json())) as Department[];
                 departments.set(_departments);
             } catch (e) {
                 console.error(e);
                 fsMsg = '無法載入課程清單';
             }
         })();
-    }, () => [selectedSemester])
+    }, () => [$sem])
 
     function deselectActiveElement() {
         (document.activeElement as any).blur()
     }
+
+    const handleSemesterChange = (e) => {
+        displaySerNo = false;
+        $sem = (e.target as HTMLSelectElement).value;
+    };
 
 </script>
 
@@ -102,6 +108,10 @@
         padding: 8px;
         text-align: center;
     }
+    .list-label sup {
+        padding: 4px;
+        cursor: help;
+    }
     .right-area {
         overflow-y: auto;
     }
@@ -114,7 +124,15 @@
 <div class="Main">
     <div class="left-area">
         <div class="top-actions">
-            <div class="form-check form-switch" on:click={deselectActiveElement}>
+            <span>學期：
+                <select value={$sem} on:change={handleSemesterChange}>
+                    {#each semesters as semester}
+                    <option value={semester}>{formatSemester(semester)}</option>
+                    {/each}
+                </select>
+            </span>
+            <button class="btn btn-outline-dark" on:click={() => displayCourseCatalog = true}>瀏覽課程</button>
+            <div class="form-check form-switch" on:click={deselectActiveElement} style="margin-left: 1em">
                 <input class="form-check-input shadow-none" type="checkbox" id="switchSerNo" 
                     bind:checked={displaySerNo} 
                     on:change={(e)=> {
@@ -139,12 +157,10 @@
                 >
                 <label class="form-check-label" for="switchSerNo">編輯模式</label>
             </div>
-            <button class="btn btn-outline-dark" on:click={() => displayCourseCatalog = true}>瀏覽課程</button>
-            <span style="margin-left: 1em">學年：{formatSemester($sem)}</span>
         </div>
         <div class="list-container">
-            <div class="list-label">待選課程</div>
-            <div class="list-label">已選課程</div>
+            <div class="list-label">待選課程<sup title="剛從課程清單加入的課程，你可以把課程拖到已選裡面">?</sup></div>
+            <div class="list-label">已選課程<sup title="已選的課程會顯示在右邊的課表上，你可以檢查有沒有衝堂">?</sup></div>
             {#if !displaySerNo}
                 <CourseList bind:courseList={$candidateCourseIds}/>
                 <CourseList bind:refs={$selectedCourseRefs} bind:courseList={$selectedCourseIds}/>

@@ -28,6 +28,7 @@
   "dependencies": {
     "@types/sortablejs": "^1.10.7",
     "fp-ts": "^2.11.1",
-    "sortablejs": "^1.14.0"
+    "sortablejs": "^1.14.0",
+    "svelte-writable-derived": "^3.0.1"
   }
 }

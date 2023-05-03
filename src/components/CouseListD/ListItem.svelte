@@ -1,14 +1,13 @@
 <script lang="ts">
     import type { SerNo } from "../../types";
-    import { allCourses, courseDisplayStatuses } from "../../stores";
+    import { allCourses, hoveringCourseId } from "../../stores";
     export let self;
     export let serNo: SerNo;
     export let deleteItem;
     const course = $allCourses.find(c => c.friendlyId === serNo)
-    const displayStatus = courseDisplayStatuses(serNo)
     $: backgroundColor =
         course
-            ? $displayStatus.isHighlighting
+            ? $hoveringCourseId === serNo
                 ? '#C8EBFB'
                 : 'none'
             : 'red'
@@ -33,8 +32,8 @@
 <div class="ListItem" data-id={serNo}
     style={`background-color : ${backgroundColor};`}
     bind:this={self}
-    on:mouseenter={()=> $displayStatus.isHighlighting = true}
-    on:mouseleave={()=> $displayStatus.isHighlighting = false}
+    on:mouseenter={()=> $hoveringCourseId = serNo}
+    on:mouseleave={()=> $hoveringCourseId = null}
 >
     <button on:click={() => deleteItem(serNo)} >
         <span class="material-icons">
